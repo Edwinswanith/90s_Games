@@ -1,0 +1,163 @@
+{
+  "date": "2026-09-08",
+  "runtime": "Node 24.20.0 / pnpm 10.29.2",
+  "hardware": "Apple M1, 8 GB RAM, macOS 14.5",
+  "browser": "152.0.7977.77",
+  "scope": "Mac desktop, local authoritative server; independent contexts and SDK clients, no physical phone or second LAN device result",
+  "unit": {
+    "passed": 31,
+    "total": 31,
+    "files": 9,
+    "success": true
+  },
+  "integration": {
+    "passed": 6,
+    "total": 6,
+    "success": true
+  },
+  "foundation": true,
+  "browserHitAgreement": true,
+  "browserCups": true,
+  "deterministicSoak": {
+    "festival": 10,
+    "knockout": 10
+  },
+  "load": {
+    "passed": true,
+    "seconds": 1802.522,
+    "clients": 8,
+    "completedMatches": 7,
+    "maxSampledStepP95Ms": 4.79175000000032,
+    "maxSampledCharacterBodies": 8,
+    "firstRssMiB": 89.828125,
+    "lastRssMiB": 46.75
+  },
+  "impairment": [
+    {
+      "addedRttMs": 0,
+      "jitterMs": "±10ms each direction; ordered game messages",
+      "seed": 2026,
+      "errors": []
+    },
+    {
+      "addedRttMs": 100,
+      "jitterMs": "±10ms each direction; ordered game messages",
+      "seed": 2026,
+      "errors": []
+    },
+    {
+      "addedRttMs": 200,
+      "jitterMs": "±10ms each direction; ordered game messages",
+      "seed": 2026,
+      "errors": []
+    }
+  ],
+  "rendering": [
+    {
+      "game": "kalla-manna",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "quality": "medium",
+      "logicalParticipants": 8,
+      "samples": 7,
+      "meanSampledFps": 58.36393524212639,
+      "maxSampledFrameP95Ms": 17,
+      "maxSampledDrawCalls": 50
+    },
+    {
+      "game": "pachai-kuthirai",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "quality": "medium",
+      "logicalParticipants": 8,
+      "samples": 7,
+      "meanSampledFps": 58.90701151659736,
+      "maxSampledFrameP95Ms": 24.599999994039536,
+      "maxSampledDrawCalls": 37
+    },
+    {
+      "game": "eripandhu",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "quality": "medium",
+      "logicalParticipants": 8,
+      "samples": 7,
+      "meanSampledFps": 59.8995161064554,
+      "maxSampledFrameP95Ms": 29.80000001192093,
+      "maxSampledDrawCalls": 47
+    },
+    {
+      "game": "seven-stones",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "quality": "medium",
+      "logicalParticipants": 8,
+      "samples": 7,
+      "meanSampledFps": 59.954947455997754,
+      "maxSampledFrameP95Ms": 32.19999998807907,
+      "maxSampledDrawCalls": 50
+    },
+    {
+      "game": "paandi",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "quality": "medium",
+      "logicalParticipants": 8,
+      "samples": 7,
+      "meanSampledFps": 59.821933703830716,
+      "maxSampledFrameP95Ms": 33.599999994039536,
+      "maxSampledDrawCalls": 51
+    }
+  ],
+  "renderingScope": "Seven overlapping rolling-window samples per game, before final Tamil/audio wiring, not a whole-match GPU profile",
+  "wholeClientGzipEquivalentBytes": 2004518,
+  "cleanDistribution": {
+    "pass": true,
+    "offlineInstallFromPopulatedCache": true,
+    "noExternalGameRequests": true,
+    "occupiedPortFailed": true
+  },
+  "tamilAudio": {
+    "pass": true,
+    "audioEvents": {
+      "click": 7,
+      "count": 3,
+      "warning": 14,
+      "jump": 1,
+      "land": 1,
+      "eliminate": 1,
+      "finish": 2
+    }
+  },
+  "pending": [
+    "Physical Android Chrome",
+    "Physical iPhone Safari",
+    "Second physical LAN device",
+    "Windows/Linux execution",
+    "Native Tamil review and remaining decorative/admin copy",
+    "Human group balancing"
+  ],
+  "builtLauncher": {
+    "pass": true,
+    "browser": "152.0.7977.77",
+    "url": "http://localhost:2567",
+    "independentChromeContexts": 2,
+    "productionDiagnosticsDisabled": true,
+    "gzipScripts": true,
+    "offlineGameRequests": true,
+    "round": "eripandhu",
+    "refreshDuringGame": true,
+    "errors": [],
+    "outside": []
+  }
+}

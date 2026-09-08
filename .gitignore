@@ -1,0 +1,8 @@
+node_modules/
+.runtime/
+dist/
+artifacts/
+coverage/
+.env
+*.log
+.DS_Store

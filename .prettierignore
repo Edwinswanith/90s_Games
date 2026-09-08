@@ -1,0 +1,7 @@
+.runtime
+node_modules
+artifacts
+**/dist
+pnpm-lock.yaml
+docs/MASTER_SPECIFICATION.md
+scripts/game-action-runner.mjs
