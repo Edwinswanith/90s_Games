@@ -15,6 +15,8 @@ import { session, controls, PredictionRuntime, physicsReady } from './network';
 import { InstancePool, Piece } from './Instances';
 import { preferences, usePreferences } from './preferences';
 import { sound } from './audio';
+import { hype } from './hype';
+import { HypeDirector, Particles, Footwork, Sky } from './Effects';
 export const avatarColors = [
   COLORS.yellow,
   COLORS.coral,
@@ -195,7 +197,9 @@ export function Character({
   }, -2);
   const player = session.room?.state.players.get(id),
     teamGame = session.room?.state.selectedGame === 'seven-stones';
-  const skin = ['#AE704D', '#D89568', '#825035', '#C08053', '#EDB38B', '#985F43'][cosmetic % 6];
+  const skin = ['#AE704D', '#D89568', '#825035', '#C08053', '#EDB38B', '#985F43'][cosmetic % 6],
+    outfit = avatarColors[cosmetic % 6],
+    hat = Math.floor(cosmetic / 6);
   return (
     <group ref={group}>
       {player && (
@@ -223,12 +227,8 @@ export function Character({
       {cosmetic % 3 === 2 && (
         <Box position={[0, 0.84, 0.23]} size={[0.08, 0.4, 0.07]} color={COLORS.cream} />
       )}
-      <Piece
-        position={[0, 0.79, 0]}
-        kind="capsule"
-        args={[0.23, 0.35, 4, 12]}
-        color={avatarColors[cosmetic % 6]}
-      />
+      <Piece position={[0, 0.79, 0]} kind="capsule" args={[0.23, 0.35, 4, 12]} color={outfit} />
+      <Hat kind={hat} />
       <Piece position={[0, 1.28, 0]} kind="sphere" args={[0.35, 16, 12]} color={skin} />
       <Piece
         position={[0, 1.48, -0.035]}
@@ -257,12 +257,7 @@ export function Character({
         {[-1, 1].map((s) => (
           <group key={s} position={[s * 0.31, 0, 0]} rotation={[0, 0, s * 0.13]}>
             <Piece kind="capsule" args={[0.085, 0.26, 3, 8]} color={skin} />
-            <Piece
-              position={[0, 0.14, 0]}
-              kind="sphere"
-              args={[0.1, 8, 8]}
-              color={avatarColors[cosmetic % 6]}
-            />
+            <Piece position={[0, 0.14, 0]} kind="sphere" args={[0.1, 8, 8]} color={outfit} />
           </group>
         ))}
       </group>
@@ -295,6 +290,77 @@ export function Character({
       )}
     </group>
   );
+}
+// Level-unlocked headwear. Appearance only: no effect on hitboxes or movement.
+function Hat({ kind }: { kind: number }) {
+  if (kind === 1)
+    return (
+      <>
+        <Piece
+          position={[0, 1.55, 0]}
+          scale={[1, 0.5, 1]}
+          kind="sphere"
+          args={[0.37, 14, 10]}
+          color={COLORS.blue}
+        />
+        <Box position={[0, 1.55, 0.3]} size={[0.42, 0.04, 0.3]} color={COLORS.blue} />
+      </>
+    );
+  if (kind === 2)
+    return (
+      <>
+        {Array.from({ length: 9 }, (_, i) => (
+          <Piece
+            key={i}
+            position={[
+              Math.sin((i / 9) * Math.PI * 2) * 0.34,
+              1.5,
+              Math.cos((i / 9) * Math.PI * 2) * 0.34,
+            ]}
+            kind="sphere"
+            args={[0.06, 6, 5]}
+            color={i % 2 ? COLORS.white : COLORS.mint}
+          />
+        ))}
+      </>
+    );
+  if (kind === 3 || kind === 5)
+    return (
+      <>
+        <Piece
+          position={[0, 1.66, 0]}
+          kind="cylinder"
+          args={[0.3, 0.3, 0.16, 10]}
+          color={kind === 5 ? '#F2B61C' : COLORS.coral}
+        />
+        {Array.from({ length: 5 }, (_, i) => (
+          <Piece
+            key={i}
+            position={[
+              Math.sin((i / 5) * Math.PI * 2) * 0.28,
+              1.8,
+              Math.cos((i / 5) * Math.PI * 2) * 0.28,
+            ]}
+            kind="cone"
+            args={[0.07, 0.15, 4]}
+            color={kind === 5 ? '#F2B61C' : COLORS.yellow}
+          />
+        ))}
+        {kind === 5 && (
+          <Piece position={[0, 1.68, 0.3]} kind="ico" args={[0.06, 0]} color={COLORS.coral} />
+        )}
+      </>
+    );
+  if (kind === 4)
+    return (
+      <>
+        {[-0.12, 0.12].map((x) => (
+          <Box key={x} position={[x, 1.31, 0.33]} size={[0.17, 0.09, 0.03]} color={COLORS.ink} />
+        ))}
+        <Box position={[0, 1.33, 0.33]} size={[0.44, 0.025, 0.03]} color={COLORS.ink} />
+      </>
+    );
+  return null;
 }
 function Croucher({ box: b }: any) {
   return (
@@ -761,16 +827,34 @@ function World({ cosmetic }: { cosmetic: number }) {
     if (preferences.shake && !preferences.reducedMotion && p && p.stunUntil > (state?.tick ?? 0))
       camera.position.x += Math.sin(performance.now() * 0.07) * 0.055;
     camera.lookAt(look.current);
+    // Impact punch from hype events: decaying random offset, plus a short FOV kick on boosts.
+    if (hype.shake > 0.001) {
+      const k = hype.shake * hype.shake * 0.45;
+      camera.position.x += (Math.random() - 0.5) * k;
+      camera.position.y += (Math.random() - 0.5) * k;
+      hype.shake *= Math.exp(-7 * dt);
+    }
+    const perspective = camera as THREE.PerspectiveCamera;
+    const me = room?.state.players.get(room.sessionId);
+    const boosted = !preferences.reducedMotion && !!me && me.boostUntil > (state?.tick ?? 0);
+    const fov = 47 + (boosted ? 6 : 0) + hype.fovKick * 5;
+    hype.fovKick *= Math.exp(-4 * dt);
+    if (Math.abs(perspective.fov - fov) > 0.05) {
+      perspective.fov += (fov - perspective.fov) * (1 - Math.exp(-8 * dt));
+      perspective.updateProjectionMatrix();
+    }
   }, -3);
   return (
     <>
-      <color attach="background" args={['#9EDDE9']} />
-      <fog attach="fog" args={['#9EDDE9', 35, 80]} />
-      <ambientLight intensity={1.1} />
-      <hemisphereLight args={['#E6F7FF', '#D6AC7E', 1.7]} />
+      <color attach="background" args={['#F6DDB4']} />
+      <fog attach="fog" args={['#F6DDB4', 38, 90]} />
+      <Sky />
+      <ambientLight intensity={0.95} />
+      <hemisphereLight args={['#DDF1FF', '#D8A874', 1.6]} />
       <directionalLight
-        position={[8, 18, 8]}
-        intensity={2.7}
+        position={[10, 16, 6]}
+        color="#FFE6C2"
+        intensity={2.9}
         castShadow
         shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-24}
@@ -903,7 +987,10 @@ export function Scene({ cosmetic = 0 }: { cosmetic?: number }) {
       <InstancePool>
         <Metrics />
         <RoundAudio />
+        <HypeDirector />
         <World cosmetic={cosmetic} />
+        <Particles />
+        <Footwork />
       </InstancePool>
     </Canvas>
   );

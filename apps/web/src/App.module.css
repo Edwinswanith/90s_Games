@@ -1369,3 +1369,16 @@
   font-size: 18px;
   padding: 4px;
 }
+.timerUrgent {
+  background: #e86762;
+  animation: timerPulse 1s ease-in-out infinite;
+}
+@keyframes timerPulse {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+  12% {
+    transform: translateX(-50%) scale(1.14);
+  }
+}

@@ -5,6 +5,7 @@ import type { RoundOutcome } from '../../../packages/shared/src/state';
 import { session, leave } from './network';
 import { preferences } from './preferences';
 import styles from './App.module.css';
+import { RewardCard } from './HypeHUD';
 export let spectatorId = '';
 export function RoundUI() {
   const [follow, setFollow] = useState(0);
@@ -132,6 +133,7 @@ export function RoundUI() {
               )),
             )}
           </div>
+          {s.phase === 'ROUND_RESULTS' && <RewardCard outcomeId={outcome.id} />}
           {s.phase === 'MATCH_RESULTS' && s.format === 'festival' && (
             <details>
               <summary>{tr('Round-by-round points')}</summary>
@@ -192,7 +194,9 @@ export function RoundUI() {
         <h2>{preferences.language === 'ta' ? game.tamil : game.title}</h2>
         <p>{preferences.language === 'ta' ? game.objectiveTa : game.objective}</p>
       </div>
-      <div className={styles.timer}>
+      <div
+        className={`${styles.timer} ${remaining <= 10 || s.suddenDeath ? styles.timerUrgent : ''}`}
+      >
         {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
       </div>
       <div className={styles.aliveBadge}>

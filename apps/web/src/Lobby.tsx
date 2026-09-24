@@ -74,7 +74,7 @@ export function Lobby() {
                   <div key={i} className={styles.playerRow}>
                     <span
                       className={styles.avatarDot}
-                      style={{ background: p ? avatarColors[p.cosmetic] : '#C7D3EF' }}
+                      style={{ background: p ? avatarColors[p.cosmetic % 6] : '#C7D3EF' }}
                     >
                       {p ? i + 1 : '+'}
                     </span>

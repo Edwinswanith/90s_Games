@@ -10,14 +10,16 @@ export interface Preferences {
   outfit: number;
   skin: number;
 }
+const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const defaults: Preferences = {
   language: 'en',
   master: 0.65,
   music: 0.15,
   effects: 0.7,
   quality: 'medium',
-  reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
-  shake: false,
+  reducedMotion: prefersReduced,
+  // Impact shake sells hits and knockouts; reduced motion always disables it.
+  shake: !prefersReduced,
   outfit: 0,
   skin: 0,
 };

@@ -21,6 +21,10 @@ import { Settings } from './Settings';
 import { usePreferences, preferences, savePreferences } from './preferences';
 import { activateAudio, sound, disposeAudio, audioDiagnostics } from './audio';
 import { t } from './i18n';
+import { HypeHUD, ProfileChip, TrophyShelf, useProgress } from './HypeHUD';
+import { HATS, levelFor, progress } from './progression';
+import { hype } from './hype';
+import hypeStyles from './Hype.module.css';
 export default function App() {
   useSyncExternalStore(subscribe, snapshot);
   const prefs = usePreferences();
@@ -29,7 +33,11 @@ export default function App() {
     [practiceGame, setPracticeGame] = useState('kalla-manna'),
     [boot, setBoot] = useState('Loading local fonts and physics…');
   const [name, setName] = useState(localStorage.getItem('theru.name') || 'Street star'),
-    [cosmetic, setCosmetic] = useState(Number(localStorage.getItem('theru.cosmetic') || 0));
+    [cosmetic, setCosmetic] = useState(Number(localStorage.getItem('theru.cosmetic') || 0) % 6),
+    [hat, setHat] = useState(Number(localStorage.getItem('theru.hat') || 0));
+  const streetLevel = levelFor(useProgress().xp).level;
+  // Headwear only applies once unlocked; the server receives colour + 6 x hat.
+  const look = cosmetic + 6 * ((HATS[hat]?.level ?? 99) <= streetLevel ? hat : 0);
   const [page, setPage] = useState('play'),
     [code, setCode] = useState(new URLSearchParams(location.search).get('room') || ''),
     [join, setJoin] = useState(false),
@@ -61,7 +69,8 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('theru.name', name);
     localStorage.setItem('theru.cosmetic', String(cosmetic));
-  }, [name, cosmetic]);
+    localStorage.setItem('theru.hat', String(hat));
+  }, [name, cosmetic, hat]);
   useEffect(() => {
     const keys = new Set<string>();
     function refresh() {
@@ -179,6 +188,17 @@ export default function App() {
               owner: b.owner,
             }))
           : [],
+        wavePhase: session.room?.state.wavePhase,
+        safeTiles: session.room ? JSON.parse(session.room.state.safeTiles || '[]') : [],
+        hype: {
+          style: Math.round(hype.round.style),
+          combo: hype.combo.count,
+          bestCombo: hype.round.bestCombo,
+          safety: hype.safety,
+          banner: hype.banner?.title ?? '',
+          rewardXp: hype.summary?.total ?? 0,
+          progressXp: progress().xp,
+        },
         prediction: runtime?.sim?.drift,
         inputBacklog: runtime?.input.pendingCount,
         processedInputs: runtime?.input.lastProcessed,
@@ -192,7 +212,7 @@ export default function App() {
       setCreating(true);
       return;
     }
-    const r = await connect(name, cosmetic, join ? code : undefined);
+    const r = await connect(name, look, join ? code : undefined);
     if (r) {
       if (!join) r.send('settings', { format, singleGame: practiceGame, botFill: true });
       setPage('play');
@@ -202,7 +222,7 @@ export default function App() {
   }
   return (
     <main className={styles.app}>
-      <div className={styles.scene}>{!boot && <Scene cosmetic={cosmetic} />}</div>
+      <div className={styles.scene}>{!boot && <Scene cosmetic={look} />}</div>
       <header className={styles.header}>
         <button className={styles.brand} onClick={() => setPage('play')}>
           <span className={styles.brandIcon}>தெ</span>
@@ -229,19 +249,28 @@ export default function App() {
               ['play', '▶'],
               ['games', '▦'],
               ['wardrobe', '♧'],
+              ['trophies', '★'],
               ['settings', '⚙'],
             ].map(([key, icon]) => (
               <button
                 key={key}
                 aria-label={
-                  key === 'settings' ? 'Settings' : t(key as 'play' | 'games' | 'wardrobe')
+                  key === 'settings'
+                    ? 'Settings'
+                    : key === 'trophies'
+                      ? 'Trophies'
+                      : t(key as 'play' | 'games' | 'wardrobe')
                 }
                 className={page === key ? styles.activeRail : ''}
                 onClick={() => (key === 'settings' ? setMenu(true) : setPage(key))}
               >
                 <b>{icon}</b>
                 <span>
-                  {key === 'settings' ? t('settings') : t(key as 'play' | 'games' | 'wardrobe')}
+                  {key === 'settings'
+                    ? t('settings')
+                    : key === 'trophies'
+                      ? 'Trophies'
+                      : t(key as 'play' | 'games' | 'wardrobe')}
                 </span>
               </button>
             ))}
@@ -257,6 +286,7 @@ export default function App() {
                 <p>Five childhood games. One neighbourhood party.</p>
               </div>
               <section className={styles.homeCard}>
+                <ProfileChip onOpen={() => setPage('trophies')} />
                 <span className={styles.kicker}>வாங்க விளையாடலாம்</span>
                 <h2>
                   {creating ? (
@@ -362,10 +392,22 @@ export default function App() {
               className={`${styles.browserPanel} ${page === 'wardrobe' ? styles.wardrobePanel : ''}`}
             >
               <span className={styles.kicker}>
-                {page === 'games' ? 'THE NEIGHBOURHOOD PLAYLIST' : 'MAKE YOURSELF AT HOME'}
+                {page === 'games'
+                  ? 'THE NEIGHBOURHOOD PLAYLIST'
+                  : page === 'trophies'
+                    ? 'YOUR STREET RECORD'
+                    : 'MAKE YOURSELF AT HOME'}
               </span>
-              <h2>{page === 'games' ? 'Small streets. Big games.' : 'Pick your colours.'}</h2>
-              {page === 'games' ? (
+              <h2>
+                {page === 'games'
+                  ? 'Small streets. Big games.'
+                  : page === 'trophies'
+                    ? 'Trophies & bests.'
+                    : 'Pick your colours.'}
+              </h2>
+              {page === 'trophies' ? (
+                <TrophyShelf />
+              ) : page === 'games' ? (
                 <div className={styles.gamesGrid}>
                   {Object.values(GAMES).map((g) => (
                     <article className={styles.gameCard} key={g.id}>
@@ -421,6 +463,19 @@ export default function App() {
                       </button>
                     ))}
                   </div>
+                  <p>Headwear unlocks as your street level rises. You are level {streetLevel}.</p>
+                  <div className={hypeStyles.hats}>
+                    {HATS.map((h) => (
+                      <button
+                        key={h.id}
+                        aria-pressed={h.id === hat}
+                        disabled={h.level > streetLevel}
+                        onClick={() => setHat(h.id)}
+                      >
+                        {h.level > streetLevel ? `🔒 ${h.name} · LV ${h.level}` : h.name}
+                      </button>
+                    ))}
+                  </div>
                 </>
               )}
             </section>
@@ -444,6 +499,7 @@ export default function App() {
           <span className={styles.version}>v0.1</span>
         </span>
       </footer>
+      {room && state?.phase !== 'LOBBY' && <HypeHUD />}
       {room && state?.phase === 'PLAYING' && !menu && <TouchControls />}
       {menu && <Settings close={() => setMenu(false)} />}
       {boot && (

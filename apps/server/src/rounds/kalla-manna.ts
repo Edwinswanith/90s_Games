@@ -6,6 +6,9 @@ import type { Player } from '../../../../packages/shared/src/state';
 import { neutralInput } from '../../../../packages/simulation/src/physics';
 export class KallaManna extends BaseRound {
   random = seeded(this.ctx.seed);
+  // Separate stream so CPU nerves never change the seeded hazard sequence.
+  nerves = seeded(this.ctx.seed ^ 0x5f3759df);
+  panic = new Map<string, number>();
   safeIds = new Set<number>();
   callTick = 0;
   start() {
@@ -19,7 +22,13 @@ export class KallaManna extends BaseRound {
     this.s.safe = this.random() < 0.5 ? 'stone' : 'sand';
     const candidates = kallaCells.filter((c) => c.material === this.s.safe);
     this.safeIds = new Set(candidates.map((c) => c.index));
-    const warning = Math.max(108, 180 - this.s.wave * 5);
+    const warning = Math.max(108, 180 - this.s.wave * 8);
+    // CPUs occasionally freeze on a call, more often as the pace rises, so survival stays
+    // uncertain and the round thins out instead of ending in an eight-way tie.
+    this.panic.clear();
+    for (const p of this.players)
+      if (p.cpu && this.nerves() < Math.min(0.35, 0.03 + this.s.wave * 0.025))
+        this.panic.set(p.slotId, Math.round(warning * (0.55 + this.nerves() * 0.4)));
     if (this.s.wave > 4) {
       const selected = candidates.filter(() => this.random() < 0.5);
       for (const p of this.players.filter((p) => p.alive)) {
@@ -67,7 +76,7 @@ export class KallaManna extends BaseRound {
   }
   bot(p: Player) {
     if (!p.alive || this.s.wavePhase === 'recovery') return neutralInput();
-    const delay = 18 + this.players.indexOf(p) * 3;
+    const delay = 18 + this.players.indexOf(p) * 3 + (this.panic.get(p.slotId) ?? 0);
     if (this.s.tick - this.callTick < delay) return neutralInput();
     const candidates = kallaCells.filter((c) => this.safeIds.has(c.index));
     const target = candidates.sort(

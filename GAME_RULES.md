@@ -14,7 +14,7 @@ These are digital adaptations, not claims of one universal traditional ruleset. 
 
 ## Kalla Manna
 
-The courtyard has 36 alternating stone/sand tiles. A call names the safe material; selected tiles receive cream borders and upward markers. Warning time decreases from about three seconds toward 1.8 seconds. Active hazards last two seconds, followed by a one-second recovery. Later calls may retain a reachable subset of the called material.
+The courtyard has 36 alternating stone/sand tiles. A call names the safe material; selected tiles receive cream borders and upward markers. Warning time decreases from about three seconds toward 1.8 seconds, reaching the floor by wave 9. CPUs sometimes hesitate on a call, more often as waves rise, so the courtyard thins out. Active hazards last two seconds, followed by a one-second recovery. Later calls may retain a reachable subset of the called material.
 
 Standing or landing on an unsafe support during the active phase eliminates the player. Jumping can delay contact but cannot give continuing immunity. Going out of bounds eliminates. Resolve eliminations from the same tick together. Single/Festival ends with one survivor or at 75 s; survivors at the cap remain tied. Knockout ends at its qualification target or cap and retains complete boundary ties.
 

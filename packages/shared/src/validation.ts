@@ -13,7 +13,8 @@ export const identitySchema = z.object({
       'Use 1–16 characters without control characters.',
     ),
   build: z.literal(BUILD),
-  cosmetic: z.number().int().min(0).max(5).default(0),
+  // Outfit colour (0-5) plus 6 x unlocked headwear (0-5). Appearance only.
+  cosmetic: z.number().int().min(0).max(35).default(0),
 });
 export const settingsSchema = z.object({
   format: z.enum(['single', 'festival', 'knockout']),
