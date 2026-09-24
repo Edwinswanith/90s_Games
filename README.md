@@ -60,6 +60,15 @@ Paandi requires hopping between highlighted groups. Use short movement taps for 
 
 The host chooses CPU skill in Rounds: Relaxed, Street or Legend. Harder CPUs pay more street XP, and every CPU gets a different seeded personality each round. Settings include draft Tamil UI/objectives, master/music/effects volume, three graphics presets, reduced motion, and optional screen shake. Wardrobe presets change appearance only. Touch controls provide an independent movement stick, Jump, and an Action/aim control on coarse-pointer devices. **Physical Android and iPhone testing is still pending**; responsive emulation is not device acceptance.
 
+## Deploy online (Render)
+
+The repository includes `render.yaml`. On Render choose **New → Blueprint**, pick this repository and branch, and deploy. One Node service builds the client and serves the page and the game server on one URL; Render's port and public URL are picked up automatically. Share the `https://…onrender.com` link with friends.
+
+- Rooms live in memory on a single instance: do not scale to more than one instance.
+- The free plan sleeps when idle. The first visit afterwards takes 30–60 seconds, and a sleeping server ends any party in progress.
+- Railway also works: the server reads `PORT` and `RAILWAY_PUBLIC_DOMAIN`. Build with `pnpm install --frozen-lockfile && pnpm build`, start with `node apps/server/dist/index.mjs`, Node 24.
+- Custom domains: add them to `ALLOWED_ORIGINS` (comma-separated `https://…` origins).
+
 ## Troubleshooting
 
 - **Port occupied:** stop the other server. No process is killed automatically. See `.env.example` for port overrides.

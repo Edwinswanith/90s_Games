@@ -9,9 +9,11 @@ import {
 } from '../../../packages/simulation/src/physics';
 import { mapFor } from '../../../packages/shared/src/maps';
 export type GameRoom = Room<any, PartyState>;
+// The built server serves this page and the game on one origin (locally :2567, or a hosted
+// https URL on the default port), so production talks to its own origin.
 export const serverUrl =
   import.meta.env.VITE_GAME_SERVER_URL ||
-  `${location.protocol}//${location.hostname}:${import.meta.env.DEV ? '2567' : location.port || '2567'}`;
+  (import.meta.env.DEV ? `${location.protocol}//${location.hostname}:2567` : location.origin);
 export const session: {
   room: GameRoom | null;
   client: Client;

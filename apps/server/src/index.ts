@@ -8,7 +8,8 @@ import { Server } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import { PartyRoom, roomDirectory } from './rooms/PartyRoom';
 import { BUILD, CONTENT } from '../../../packages/shared/src/config';
-const port = Number(process.env.GAME_SERVER_PORT || 2567),
+// Hosting platforms (Render, Railway) assign the port through PORT.
+const port = Number(process.env.GAME_SERVER_PORT || process.env.PORT || 2567),
   clientPort = Number(process.env.CLIENT_PORT || 5173);
 const hosts = [
   'localhost',
@@ -18,11 +19,17 @@ const hosts = [
     .filter((x) => x?.family === 'IPv4')
     .map((x) => x!.address),
 ];
-const allowed = new Set(
-  process.env.ALLOWED_ORIGINS?.trim()
+// Public URLs that hosting platforms expose automatically, so a deploy needs no manual origin.
+const platform = [
+  process.env.RENDER_EXTERNAL_URL,
+  process.env.RAILWAY_PUBLIC_DOMAIN && `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`,
+].filter((x): x is string => !!x);
+const allowed = new Set([
+  ...platform,
+  ...(process.env.ALLOWED_ORIGINS?.trim()
     ? process.env.ALLOWED_ORIGINS.split(',').map((x) => x.trim())
-    : hosts.flatMap((h) => [`http://${h}:${port}`, `http://${h}:${clientPort}`]),
-);
+    : hosts.flatMap((h) => [`http://${h}:${port}`, `http://${h}:${clientPort}`])),
+]);
 const app = express();
 app.disable('x-powered-by');
 app.use((req, res, next) => {

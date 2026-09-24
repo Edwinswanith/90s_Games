@@ -1,0 +1,12 @@
+# One-click Render deploy: the Node server builds the web client and serves page + game on one URL.
+services:
+  - type: web
+    name: theru-party
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: node apps/server/dist/index.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.20.0
