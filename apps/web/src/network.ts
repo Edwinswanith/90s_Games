@@ -69,6 +69,7 @@ function attach(room: GameRoom) {
       state.results,
       state.votes,
       state.error,
+      state.difficulty,
       ...[...state.players.values()].map(
         (p) =>
           `${p.slotId}:${p.name}:${p.cpu}:${p.connected}:${p.ready}:${p.score}:${p.alive}:${p.lives}:${p.item}:${p.checkpoint}:${p.gate}:${p.section}:${p.notice}:${p.cosmetic}`,

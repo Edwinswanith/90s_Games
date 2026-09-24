@@ -720,7 +720,7 @@
 }
 .notice {
   position: absolute;
-  bottom: 115px;
+  bottom: 160px;
   left: 50%;
   transform: translateX(-50%);
   background: #fff4dd;
@@ -1381,4 +1381,11 @@
   12% {
     transform: translateX(-50%) scale(1.14);
   }
+}
+.skillLine {
+  display: block;
+  margin: -8px 0 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #3168e0;
 }

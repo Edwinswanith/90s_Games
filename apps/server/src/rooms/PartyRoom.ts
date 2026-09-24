@@ -62,6 +62,7 @@ export class PartyRoom extends Room<{ state: PartyState; input: InputFrame }> {
         firstRace: this.state.firstRace,
         slots: this.state.slots,
         botFill: this.state.botFill,
+        difficulty: this.state.difficulty,
         order: JSON.parse(this.state.order),
         ...patch.data,
       });

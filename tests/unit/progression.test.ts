@@ -29,6 +29,11 @@ const base: RoundStats = {
   sections: 0,
   finishSeconds: 0,
   bestCombo: 1,
+  perfectGrids: 0,
+  overtakes: 0,
+  tyreJumps: 0,
+  skillXp: 1,
+  difficulty: 'street',
 };
 const day = new Date(2026, 8, 24, 18);
 describe('street progression', () => {
@@ -114,6 +119,25 @@ describe('street progression', () => {
     );
     expect(summary.levelAfter).toBeGreaterThan(summary.levelBefore);
     expect(summary.unlocks).toContain('Cricket cap');
+  });
+  it('scales XP with CPU skill and awards the Legend Slayer badge', () => {
+    const street = applyRound(emptyProgress(), { ...base, place: 1, won: true }, 'a', day).summary;
+    const legend = applyRound(
+      emptyProgress(),
+      { ...base, place: 1, won: true, skillXp: 1.4, difficulty: 'legend' },
+      'b',
+      day,
+    ).summary;
+    const relaxed = applyRound(
+      emptyProgress(),
+      { ...base, place: 1, won: true, skillXp: 0.75, difficulty: 'relaxed' },
+      'c',
+      day,
+    ).summary;
+    expect(legend.total).toBeGreaterThan(street.total);
+    expect(relaxed.total).toBeLessThan(street.total);
+    expect(legend.newBadges.map((b) => b.id)).toContain('legend-slayer');
+    expect(street.newBadges.map((b) => b.id)).not.toContain('legend-slayer');
   });
   it('grants the Festival badge only once', () => {
     const once = applyCupWin(emptyProgress());

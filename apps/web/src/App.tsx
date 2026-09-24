@@ -21,7 +21,7 @@ import { Settings } from './Settings';
 import { usePreferences, preferences, savePreferences } from './preferences';
 import { activateAudio, sound, disposeAudio, audioDiagnostics } from './audio';
 import { t } from './i18n';
-import { HypeHUD, ProfileChip, TrophyShelf, useProgress } from './HypeHUD';
+import { HypeBoundary, HypeHUD, ProfileChip, TrophyShelf, useProgress } from './HypeHUD';
 import { HATS, levelFor, progress } from './progression';
 import { hype } from './hype';
 import hypeStyles from './Hype.module.css';
@@ -499,7 +499,11 @@ export default function App() {
           <span className={styles.version}>v0.1</span>
         </span>
       </footer>
-      {room && state?.phase !== 'LOBBY' && <HypeHUD />}
+      {room && state?.phase !== 'LOBBY' && (
+        <HypeBoundary>
+          <HypeHUD />
+        </HypeBoundary>
+      )}
       {room && state?.phase === 'PLAYING' && !menu && <TouchControls />}
       {menu && <Settings close={() => setMenu(false)} />}
       {boot && (

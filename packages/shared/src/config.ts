@@ -52,6 +52,14 @@ export const GAME_IDS = [
 ] as const;
 export type GameId = (typeof GAME_IDS)[number];
 export type Format = 'single' | 'festival' | 'knockout';
+// CPU skill. Humans are never affected; it only shapes CPU reaction, accuracy and mistakes.
+export const DIFFICULTIES = ['relaxed', 'street', 'legend'] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+export const DIFFICULTY_INFO: Record<Difficulty, { label: string; detail: string; xp: number }> = {
+  relaxed: { label: 'Relaxed', detail: 'Slower CPUs that slip up often.', xp: 0.75 },
+  street: { label: 'Street', detail: 'A fair neighbourhood challenge.', xp: 1 },
+  legend: { label: 'Legend', detail: 'Sharp, fast CPUs. Bonus XP.', xp: 1.4 },
+};
 export type Phase =
   | 'LOBBY'
   | 'VOTING'
@@ -102,7 +110,7 @@ export const GAMES: Record<GameId, RoundManifest> = {
     subtitle: 'Leapfrog Lane',
     category: 'RACE',
     seconds: 90,
-    objective: 'Time your vaults, pass the checkpoints, and reach the finish.',
+    objective: 'Time your vaults, jump the rolling tyres, pass the checkpoints and finish.',
     objectiveTa: 'சரியான நேரத்தில் தாண்டி, சோதனைப் புள்ளிகளைக் கடந்து இலக்கை அடையுங்கள்.',
     controls: 'Move · Jump / vault',
     color: COLORS.yellow,
@@ -126,7 +134,7 @@ export const GAMES: Record<GameId, RoundManifest> = {
     subtitle: 'Stack and Scatter',
     category: 'TEAM PLAY',
     seconds: 186,
-    objective: 'Builders stack seven stones. Defenders interrupt deliveries. Swap roles.',
+    objective: 'Builders stack seven stones. Defenders tag them with the ball. Swap roles.',
     objectiveTa: 'ஏழு கற்களை அடுக்குங்கள் அல்லது பந்தால் தடுங்கள். பிறகு அணிகளின் பங்கு மாறும்.',
     controls: 'Move · Jump · E pick up / place / throw',
     color: COLORS.cyan,

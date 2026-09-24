@@ -1,11 +1,16 @@
 import { tr } from './gameCopy';
 import { useState } from 'react';
-import { GAMES, type GameId } from '../../../packages/shared/src/config';
+import {
+  GAMES,
+  DIFFICULTY_INFO,
+  type Difficulty,
+  type GameId,
+} from '../../../packages/shared/src/config';
 import type { RoundOutcome } from '../../../packages/shared/src/state';
 import { session, leave } from './network';
 import { preferences } from './preferences';
 import styles from './App.module.css';
-import { RewardCard } from './HypeHUD';
+import { HypeBoundary, RewardCard } from './HypeHUD';
 export let spectatorId = '';
 export function RoundUI() {
   const [follow, setFollow] = useState(0);
@@ -60,6 +65,12 @@ export function RoundUI() {
           <h3>{game.tamil}</h3>
           <p>{preferences.language === 'ta' ? game.objectiveTa : game.objective}</p>
           <div className={styles.controlHints}>{tr(game.controls)}</div>
+          {[...s.players.values()].some((p) => p.cpu) && (
+            <small className={styles.skillLine}>
+              CPU skill: {DIFFICULTY_INFO[s.difficulty as Difficulty]?.label ?? 'Street'} · XP x
+              {DIFFICULTY_INFO[s.difficulty as Difficulty]?.xp ?? 1}
+            </small>
+          )}
           <strong className={styles.countdown}>
             {s.phase === 'COUNTDOWN'
               ? remaining
@@ -133,7 +144,11 @@ export function RoundUI() {
               )),
             )}
           </div>
-          {s.phase === 'ROUND_RESULTS' && <RewardCard outcomeId={outcome.id} />}
+          {s.phase === 'ROUND_RESULTS' && (
+            <HypeBoundary>
+              <RewardCard outcomeId={outcome.id} />
+            </HypeBoundary>
+          )}
           {s.phase === 'MATCH_RESULTS' && s.format === 'festival' && (
             <details>
               <summary>{tr('Round-by-round points')}</summary>

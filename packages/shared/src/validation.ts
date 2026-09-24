@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILD, GAME_IDS, type Format } from './config';
+import { BUILD, DIFFICULTIES, GAME_IDS, type Format } from './config';
 export const identitySchema = z.object({
   name: z
     .string()
@@ -23,6 +23,7 @@ export const settingsSchema = z.object({
   firstRace: z.enum(['pachai-kuthirai', 'paandi']),
   slots: z.number().int().min(2).max(8),
   botFill: z.boolean(),
+  difficulty: z.enum(DIFFICULTIES),
   order: z
     .array(z.enum(GAME_IDS))
     .length(5)

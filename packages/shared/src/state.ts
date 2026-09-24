@@ -105,6 +105,7 @@ export const PartyState = schema(
     firstRace: t.string().default('pachai-kuthirai'),
     slots: t.float64().default(8),
     botFill: t.boolean().default(true),
+    difficulty: t.string().default('street'),
     order: t.string().default(''),
     remaining: t.string().default(''),
     tick: t.float64().default(0),

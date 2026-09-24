@@ -1,4 +1,4 @@
-import { BaseRound, steer } from './base';
+import { BaseRound, pace, steer } from './base';
 import { makeOutcome } from '../../../../packages/shared/src/scoring';
 import { seeded } from '../../../../packages/shared/src/config';
 import { kallaCells, cellAt } from '../../../../packages/shared/src/maps';
@@ -27,7 +27,10 @@ export class KallaManna extends BaseRound {
     // uncertain and the round thins out instead of ending in an eight-way tie.
     this.panic.clear();
     for (const p of this.players)
-      if (p.cpu && this.nerves() < Math.min(0.35, 0.03 + this.s.wave * 0.025))
+      if (
+        p.cpu &&
+        this.nerves() < Math.min(0.45, (0.03 + this.s.wave * 0.025) * (this.skill(p).slip / 0.06))
+      )
         this.panic.set(p.slotId, Math.round(warning * (0.55 + this.nerves() * 0.4)));
     if (this.s.wave > 4) {
       const selected = candidates.filter(() => this.random() < 0.5);
@@ -76,12 +79,13 @@ export class KallaManna extends BaseRound {
   }
   bot(p: Player) {
     if (!p.alive || this.s.wavePhase === 'recovery') return neutralInput();
-    const delay = 18 + this.players.indexOf(p) * 3 + (this.panic.get(p.slotId) ?? 0);
+    const delay =
+      18 + this.players.indexOf(p) * 3 + this.skill(p).reaction + (this.panic.get(p.slotId) ?? 0);
     if (this.s.tick - this.callTick < delay) return neutralInput();
     const candidates = kallaCells.filter((c) => this.safeIds.has(c.index));
     const target = candidates.sort(
       (a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z),
     )[0];
-    return target ? steer(p, target, 0.25) : neutralInput();
+    return target ? pace(steer(p, target, 0.25), this.skill(p)) : neutralInput();
   }
 }

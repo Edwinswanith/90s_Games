@@ -249,7 +249,7 @@
 }
 .safety {
   position: absolute;
-  bottom: 170px;
+  bottom: 215px;
   left: 50%;
   transform: translateX(-50%);
   padding: 9px 20px;
@@ -298,6 +298,48 @@
   from {
     transform: translateX(30px);
     opacity: 0;
+  }
+}
+/* Live position / heat target */
+.rank {
+  position: absolute;
+  top: 272px;
+  left: 35px;
+  display: grid;
+  background: #203e91;
+  color: #fff4dd;
+  border: 2px solid #152347;
+  border-radius: 16px;
+  padding: 8px 18px 10px;
+  box-shadow: 0 4px 0 #152347;
+}
+.rank small {
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffd34e;
+}
+.rank strong {
+  font-family: 'Fredoka';
+  font-size: 38px;
+  line-height: 1;
+}
+.rank span {
+  font-size: 18px;
+  opacity: 0.75;
+}
+.leader {
+  background: #ffd34e;
+  color: #152347;
+}
+.leader small {
+  color: #152347;
+}
+@media (max-width: 800px) {
+  .rank {
+    top: auto;
+    bottom: 150px;
+    left: 16px;
   }
 }
 /* Results reward card */

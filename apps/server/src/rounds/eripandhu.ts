@@ -1,4 +1,4 @@
-import { BaseRound, steer } from './base';
+import { BaseRound, pace, steer, type Skill } from './base';
 import { BallSystem, BALL } from '../../../../packages/simulation/src/projectiles';
 import { neutralInput, type Command } from '../../../../packages/simulation/src/physics';
 import { makeOutcome } from '../../../../packages/shared/src/scoring';
@@ -70,38 +70,57 @@ export class Eripandhu extends BaseRound {
   }
 }
 export function ballBot(
-  round: { s: Eripandhu['s']; players: Player[]; balls: BallSystem },
+  round: {
+    s: Eripandhu['s'];
+    players: Player[];
+    balls: BallSystem;
+    skill(p: Player): Skill;
+    choice(): number;
+  },
   p: Player,
+  prefer?: (q: Player) => number,
 ): Command {
   if (!p.alive) return neutralInput();
   const i = round.players.indexOf(p),
-    s = round.s;
+    s = round.s,
+    skill = round.skill(p);
   const enemies = round.players.filter((q) => q.alive && round.balls.canHit(p, q));
-  const enemy = enemies.sort(
-    (a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z),
-  )[0];
+  const score = (q: Player) => Math.hypot(q.x - p.x, q.z - p.z) + (prefer?.(q) ?? 0);
+  const enemy = enemies.sort((a, b) => score(a) - score(b))[0];
   const balls = [...s.items.values()]
     .filter((b) => b.kind === 'ball' && b.status === 'GROUND')
     .sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
   let cmd = neutralInput();
   if (p.item && enemy) {
     const d = Math.hypot(enemy.x - p.x, enemy.z - p.z);
+    // Keep a throwing distance of about 5-6.5 units: point-blank throws are undodgeable.
     cmd =
-      d > 6
+      d > 6.5
         ? steer(p, enemy)
-        : steer(p, { x: Math.sin(s.tick / 100 + i) * 3, z: Math.cos(s.tick / 100 + i) * 3 });
-    const angle = Math.atan2(enemy.x - p.x, enemy.z - p.z) + Math.sin(s.tick * 0.08 + i) * 0.1;
+        : d < 4.5
+          ? steer(p, { x: p.x - (enemy.x - p.x), z: p.z - (enemy.z - p.z) })
+          : steer(p, { x: Math.sin(s.tick / 100 + i) * 3, z: Math.cos(s.tick / 100 + i) * 3 });
+    // Aim wobble and throw rhythm come from the CPU's skill, so hits are earned, not automatic.
+    const wobble = Math.sin(s.tick * 0.37 + i * 1.7) * 0.6 + Math.sin(s.tick * 0.11 + i) * 0.4;
+    const angle = Math.atan2(enemy.x - p.x, enemy.z - p.z) + wobble * (0.1 + skill.error);
     cmd.aimX = Math.sin(angle);
     cmd.aimZ = Math.cos(angle);
-    cmd.action = s.tick % 45 === (i * 3) % 45 && round.balls.lineOfSight(p, enemy);
+    // Wind-up between throws gives targets a readable moment to dodge.
+    const period = 84 + skill.reaction * 4;
+    cmd.action = s.tick % period === (i * 3) % period && round.balls.lineOfSight(p, enemy);
   } else if (balls[0]) {
     cmd = steer(p, balls[0], 0.65);
-    cmd.action = s.tick % 12 === i % 12;
+    cmd.action = s.tick % (12 + skill.reaction) === i % 12;
   } else cmd = steer(p, { x: Math.sin(s.tick / 130 + i) * 3, z: Math.cos(s.tick / 130 + i) * 3 });
-  if (p.grounded && s.tick % 12 === i % 12)
-    cmd.jump = [...s.items.values()].some(
-      (b) => b.status === 'LIVE' && b.owner !== p.slotId && Math.hypot(b.x - p.x, b.z - p.z) < 3,
-    );
+  // Dodge: an incoming ball within reach triggers a jump, with a skill-based chance each tick.
+  const incoming = [...s.items.values()].some((b) => {
+    if (b.status !== 'LIVE' || b.owner === p.slotId) return false;
+    const dx = p.x - b.x,
+      dz = p.z - b.z,
+      d = Math.hypot(dx, dz);
+    return d < 3.2 && d > 0.01 && (b.vx * dx + b.vz * dz) / d > 6;
+  });
+  if (p.grounded && incoming) cmd.jump = round.choice() < 0.2 * Math.max(0.2, 1 - skill.slip * 4);
   if (
     s.suddenDeath &&
     (Math.abs(p.x) > s.boundary - 0.8 || Math.abs(p.z) > s.boundary * 0.8 - 0.8)
@@ -110,5 +129,5 @@ export function ballBot(
     cmd.moveX = center.moveX;
     cmd.moveZ = center.moveZ;
   }
-  return cmd;
+  return pace(cmd, skill);
 }

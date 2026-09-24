@@ -11,6 +11,7 @@ import { makeOutcome } from '../../../../packages/shared/src/scoring';
 export class Paandi extends BaseRound {
   botGround = new Map<string, boolean>();
   botWait = new Map<string, number>();
+  botSlip = new Map<string, boolean>();
   wasGrounded = new Map<string, boolean>();
   previousZ = new Map<string, number>();
   firstFinish = -1;
@@ -147,9 +148,13 @@ export class Paandi extends BaseRound {
   }
   bot(p: Player): Command {
     if (p.qualified || this.s.tick < p.stunUntil) return neutralInput();
-    const index = this.players.indexOf(p);
-    if (p.grounded && !this.botGround.get(p.slotId))
-      this.botWait.set(p.slotId, this.s.tick + 6 + index * 2);
+    const index = this.players.indexOf(p),
+      skill = this.skill(p);
+    if (p.grounded && !this.botGround.get(p.slotId)) {
+      this.botWait.set(p.slotId, this.s.tick + 6 + index * 2 + Math.round(skill.reaction / 2));
+      // Occasionally misjudge the next hop and overshoot, like a nervous player.
+      this.botSlip.set(p.slotId, this.choice() < skill.slip * 0.6);
+    }
     this.botGround.set(p.slotId, p.grounded);
     if (p.grounded && this.s.tick < (this.botWait.get(p.slotId) ?? 0)) return neutralInput();
     if (p.section >= 3) return steer(p, { x: 4, z: -49 }, 0.1);
@@ -161,6 +166,7 @@ export class Paandi extends BaseRound {
     if (p.returning && !p.markerRetrieved && p.lastSupport === marker + 1 && p.grounded)
       return { ...neutralInput(), action: true };
     const target = { ...paandiGroup(p.section, p.gate), x: ((index % 3) - 1) * 0.12 };
+    if (this.botSlip.get(p.slotId)) target.z += p.returning ? 1.1 : -1.1;
     const remaining = p.grounded
       ? 0.65
       : Math.max(0.1, (p.vy + Math.sqrt(p.vy * p.vy + 48 * Math.max(0, p.y))) / 24);

@@ -19,6 +19,12 @@ export interface RoundStats {
   sections: number;
   finishSeconds: number;
   bestCombo: number;
+  perfectGrids: number;
+  overtakes: number;
+  tyreJumps: number;
+  /** CPU skill XP multiplier; 1 when the round had no CPUs. */
+  skillXp: number;
+  difficulty: string;
 }
 export interface Progress {
   xp: number;
@@ -69,6 +75,25 @@ export const BADGES: Badge[] = [
   { id: 'festival', icon: '♔', title: 'Festival Legend', detail: 'Win a Festival Cup.' },
   { id: 'streak-3', icon: '☀', title: 'Every Evening', detail: 'Play 3 days in a row.' },
   { id: 'all-five', icon: '✿', title: 'Whole Street', detail: 'Finish a round of all 5 games.' },
+  {
+    id: 'perfect-paandi',
+    icon: '▣',
+    title: 'Steady Feet',
+    detail: 'Clear 3 Paandi grids without a slip.',
+  },
+  {
+    id: 'tyre-hopper',
+    icon: '◯',
+    title: 'Tyre Hopper',
+    detail: 'Jump 3 rolling tyres in one race.',
+  },
+  { id: 'overtaker', icon: '»', title: 'Slipstream', detail: 'Make 4 overtakes in one round.' },
+  {
+    id: 'legend-slayer',
+    icon: '⚔',
+    title: 'Legend Slayer',
+    detail: 'Win a round against Legend CPUs.',
+  },
 ];
 export const HATS = [
   { id: 0, name: 'Bare head', level: 1 },
@@ -158,6 +183,13 @@ export function applyRound(
     lines.push({ label: stats.groupSize > 1 ? 'Shared the win' : 'Round winner', xp: 60 });
   if (stats.style > 0)
     lines.push({ label: 'Style & combos', xp: Math.round(Math.min(STYLE_CAP, stats.style)) });
+  if (stats.skillXp !== 1) {
+    const base = lines.reduce((sum, l) => sum + l.xp, 0);
+    lines.push({
+      label: `${stats.difficulty[0].toUpperCase()}${stats.difficulty.slice(1)} CPUs x${stats.skillXp}`,
+      xp: Math.round(base * (stats.skillXp - 1)),
+    });
+  }
   const streak = nextStreak(p.lastDay, p.dayStreak, today);
   const subtotal = lines.reduce((sum, l) => sum + l.xp, 0);
   if (streak.first)
@@ -214,6 +246,14 @@ export function applyRound(
         return stats.bestCombo >= MAX_MULTIPLIER;
       case 'streak-3':
         return p.dayStreak >= 3;
+      case 'perfect-paandi':
+        return stats.game === 'paandi' && stats.perfectGrids >= 3;
+      case 'tyre-hopper':
+        return stats.game === 'pachai-kuthirai' && stats.tyreJumps >= 3;
+      case 'overtaker':
+        return stats.overtakes >= 4;
+      case 'legend-slayer':
+        return stats.won && stats.difficulty === 'legend' && stats.skillXp > 1;
       case 'all-five':
         return ['kalla-manna', 'pachai-kuthirai', 'eripandhu', 'seven-stones', 'paandi'].every(
           (g) => (p.counters[`played:${g}`] ?? 0) > 0,

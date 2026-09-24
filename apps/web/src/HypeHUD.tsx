@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Component, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { hype, useHype, comboMultiplier } from './hype';
 import { BADGES, COMBO_WINDOW_SECONDS, levelFor, progress, subscribeProgress } from './progression';
 import { session } from './network';
@@ -14,6 +14,19 @@ function useClock(ms = 150) {
     return () => clearInterval(id);
   }, [ms]);
   return performance.now() / 1000;
+}
+// The overlay is cosmetic; if it ever throws, drop it instead of the whole game screen.
+export class HypeBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown) {
+    if (import.meta.env.DEV) console.error('hype overlay', error);
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 export function HypeHUD() {
   useHype();
@@ -71,6 +84,37 @@ export function HypeHUD() {
           <span>LV {level}</span>
           <b>+{Math.round(hype.round.style)}</b>
           <small>STYLE XP</small>
+        </div>
+      )}
+      {playing &&
+        (s.selectedGame === 'pachai-kuthirai' || s.selectedGame === 'paandi') &&
+        !!hype.round.rank &&
+        !me?.qualified && (
+          <div className={`${styles.rank} ${hype.round.rank === 1 ? styles.leader : ''}`}>
+            <small>POSITION</small>
+            <strong>
+              P{hype.round.rank}
+              <span>/{hype.round.participants || s.players.size}</span>
+            </strong>
+          </div>
+        )}
+      {playing && s.selectedGame === 'seven-stones' && s.heatPhase !== 'swap' && (
+        <div className={styles.rank}>
+          <small>{s.heat === 2 && hype.heatTarget ? 'TO BEAT' : 'SET THE PACE'}</small>
+          <strong>
+            {s.heat === 2 && hype.heatTarget ? (
+              <>
+                {hype.heatTarget.count}/7
+                <span>
+                  {hype.heatTarget.splits.at(-1) !== undefined
+                    ? ` ${hype.heatTarget.splits.at(-1)!.toFixed(1)}s`
+                    : ''}
+                </span>
+              </>
+            ) : (
+              <>HEAT 1</>
+            )}
+          </strong>
         </div>
       )}
       {playing && s.selectedGame === 'kalla-manna' && hype.safety && me?.alive && (

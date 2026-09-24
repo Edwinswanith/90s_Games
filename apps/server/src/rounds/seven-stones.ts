@@ -1,4 +1,4 @@
-import { BaseRound, steer } from './base';
+import { BaseRound, pace, steer } from './base';
 import { BallSystem } from '../../../../packages/simulation/src/projectiles';
 import { neutralInput, type Command } from '../../../../packages/simulation/src/physics';
 import { Item, type Player } from '../../../../packages/shared/src/state';
@@ -14,6 +14,7 @@ export const scatter = [
   [-1, 5],
   [-6, 2],
 ];
+const PLACE_TICKS = 27;
 export class SevenStones extends BaseRound {
   balls = new BallSystem(
     this.s,
@@ -88,7 +89,8 @@ export class SevenStones extends BaseRound {
       if (p.team !== this.s.builderTeam || this.s.tick < p.stunUntil) continue;
       if (p.item) {
         if (p.item.startsWith('stone') && !p.placingUntil && Math.hypot(p.x, p.z) <= 1.3)
-          p.placingUntil = this.s.tick + 27;
+          // Each higher stone is slower to balance: the top of the tower is the tense part.
+          p.placingUntil = this.s.tick + PLACE_TICKS + this.s.stacked * 5;
         continue;
       }
       const stone = [...this.s.items.values()]
@@ -112,11 +114,13 @@ export class SevenStones extends BaseRound {
       list[0].p.item = id;
     }
   }
-  dropStone(p: Player) {
+  dropStone(p: Player, knock = 0) {
     const stone = this.s.items.get(p.item);
     if (stone?.kind === 'stone') {
-      const x = Math.max(-10, Math.min(10, p.x));
-      let z = Math.max(-8, Math.min(8, p.z));
+      // A hit knocks the stone away from the stack, so defenders buy real time.
+      const d = Math.hypot(p.x, p.z) || 1;
+      const x = Math.max(-10, Math.min(10, p.x + (p.x / d) * knock));
+      let z = Math.max(-8, Math.min(8, p.z + (p.z / d) * knock));
       for (const b of this.ctx.physics.map.boxes.filter((b) => b.kind === 'cover'))
         if (Math.abs(x - b.x) < b.w / 2 + 0.35 && Math.abs(z - b.z) < b.d / 2 + 0.35)
           z = b.z + (z > b.z ? 1 : -1) * (b.d / 2 + 0.5);
@@ -136,12 +140,17 @@ export class SevenStones extends BaseRound {
       return;
     }
     if (this.s.heatPhase !== 'active') return;
-    const targets = new Set(this.balls.step().map((h) => h.target));
+    const hits = this.balls.step(),
+      targets = new Set(hits.map((h) => h.target));
+    for (const h of hits) h.owner.hits++;
     for (const p of targets) {
-      this.dropStone(p);
-      p.stunUntil = this.s.tick + 39;
+      this.dropStone(p, 2.5);
+      // Tagged: the builder walks back from their start line, as in street Lagori.
+      const sign = this.s.heat === 1 ? 1 : -1;
+      Object.assign(p, { x: Math.max(-6, Math.min(6, p.x)), z: 7 * sign, vx: 0, vz: 0 });
+      p.stunUntil = this.s.tick + 50;
       p.protectionUntil = this.s.tick + 90;
-      this.notice(p, 'Stone dropped! Pick it up and keep building.');
+      this.notice(p, 'Tagged! Back to the start line.');
     }
     for (const p of this.players) {
       const stone = this.s.items.get(p.item);
@@ -217,8 +226,13 @@ export class SevenStones extends BaseRound {
   }
   bot(p: Player): Command {
     if (this.s.heatPhase !== 'active') return neutralInput();
-    if (p.team !== this.s.builderTeam) return ballBot(this, p);
+    if (p.team !== this.s.builderTeam)
+      // Defenders prioritise stone carriers closing in on the stack.
+      return ballBot(this, p, (q) =>
+        q.item.startsWith('stone') ? -4 + Math.hypot(q.x, q.z) * 0.4 : 0,
+      );
     if (p.placingUntil) return neutralInput();
+    const skill = this.skill(p);
     let cmd = neutralInput();
     if (p.item) cmd = steer(p, { x: 0, z: 0 }, 0.6);
     else {
@@ -227,8 +241,8 @@ export class SevenStones extends BaseRound {
         .sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
       if (stones[0]) cmd = steer(p, stones[0], 0.65);
     }
-    cmd.action = this.s.tick % 12 === this.players.indexOf(p) % 12;
-    return cmd;
+    cmd.action = this.s.tick % (12 + skill.reaction) === this.players.indexOf(p) % 12;
+    return pace(cmd, skill);
   }
   disconnect(p: Player) {
     if (p.item.startsWith('stone')) this.dropStone(p);

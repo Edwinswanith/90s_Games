@@ -3,6 +3,7 @@
 // nothing here is sent to the server or affects placements and Cup points.
 import { useSyncExternalStore } from 'react';
 import { cellAt } from '../../../packages/shared/src/maps';
+import { DIFFICULTY_INFO, type Difficulty } from '../../../packages/shared/src/config';
 import type { RoundOutcome } from '../../../packages/shared/src/state';
 import {
   COMBO_WINDOW_SECONDS,
@@ -70,6 +71,15 @@ function freshRound(key = '') {
     bestCombo: 0,
     startTick: 0,
     participants: 0,
+    rank: 0,
+    rankAt: 0,
+    sectionResets: 0,
+    perfectGrids: 0,
+    overtakes: 0,
+    tyreJumps: 0,
+    heatStart: 0,
+    heatSplits: [] as number[],
+    tyreSeen: {} as Record<string, number>,
   };
 }
 export const hype = {
@@ -86,6 +96,8 @@ export const hype = {
   summary: null as RoundSummary | null,
   cupBadge: null as Badge | null,
   safety: '' as '' | 'safe' | 'unsafe',
+  // Seven Stones: the first heat's per-stone split times become the target for heat two.
+  heatTarget: null as null | { count: number; splits: number[] },
 };
 let nextId = 1;
 const listeners = new Set<() => void>();
@@ -177,6 +189,7 @@ interface PlayerSnap {
   qualified: boolean;
   notice: string;
   markerRetrieved: boolean;
+  protectionUntil: number;
   x: number;
   y: number;
   z: number;
@@ -185,6 +198,8 @@ interface Snapshot {
   key: string;
   phase: string;
   wavePhase: string;
+  waveLeft: number;
+  heatPhase: string;
   wave: number;
   stacked: number;
   suddenDeath: boolean;
@@ -206,12 +221,28 @@ function snap(p: any): PlayerSnap {
     qualified: p.qualified,
     notice: p.notice,
     markerRetrieved: p.markerRetrieved,
+    protectionUntil: p.protectionUntil,
     x: p.x,
     y: p.y,
     z: p.z,
   };
 }
 const ELIMINATION_GAMES = ['kalla-manna', 'eripandhu'];
+const MISTAKES = [
+  'Tyre bump',
+  'Vault blocked',
+  'Back to your checkpoint',
+  'Skip the marked cell',
+  'Land on the highlighted',
+  'Hop between the chalk',
+  'Back to this section',
+];
+// Finishers by crossing time, then everyone else by validated progress.
+export function raceRank(players: any[], id: string) {
+  const key = (p: any) => (p.finishTick >= 0 ? 1e9 - p.finishTick : p.progress);
+  const mine = players.find((p) => p.slotId === id);
+  return mine ? 1 + players.filter((p) => key(p) > key(mine)).length : 0;
+}
 export function resetHype() {
   prev = null;
   hype.round = freshRound();
@@ -232,6 +263,8 @@ export function detect(s: any, meId: string) {
     key,
     phase: s.phase,
     wavePhase: s.wavePhase,
+    waveLeft: s.waveDeadline - s.tick,
+    heatPhase: s.heatPhase,
     wave: s.wave,
     stacked: s.stacked,
     suddenDeath: s.suddenDeath,
@@ -245,6 +278,7 @@ export function detect(s: any, meId: string) {
       hype.round = freshRound(key);
       hype.combo = { count: 0, expires: 0 };
       hype.safety = '';
+      hype.heatTarget = null;
       hype.summary = s.phase === 'ROUND_RESULTS' ? hype.summary : null;
     }
     prev = cur;
@@ -294,7 +328,8 @@ export function detect(s: any, meId: string) {
     for (const p of participants) {
       const before = prev.players.get(p.slotId);
       if (!before) continue;
-      if (before.lives > p.lives && p.slotId !== meId) {
+      const tagged = game === 'seven-stones' && p.protectionUntil > before.protectionUntil + 30;
+      if ((before.lives > p.lives || tagged) && p.slotId !== meId) {
         burst(
           { x: p.x, y: p.y + 1.1, z: p.z },
           myHits > 0 ? 'gold' : 'coral',
@@ -323,7 +358,7 @@ export function detect(s: any, meId: string) {
           announce('KNOCKOUT!', 'You sent them home', 'coral', true);
           kick(0.5);
         } else {
-          reward('DIRECT HIT!', 30, 'gold');
+          reward(game === 'seven-stones' ? 'BUILDER TAGGED!' : 'DIRECT HIT!', 30, 'gold');
           kick(0.25);
         }
       }
@@ -385,6 +420,51 @@ export function detect(s: any, meId: string) {
         announce('QUALIFIED!', 'You are through to the next round', 'mint', true);
         burst(at, 'mint', 36, 1.4);
       }
+      const notice = me.notice !== was.notice ? me.notice : '';
+      // Mistakes: a sharp coral flash and the combo breaks, so the chain stays meaningful.
+      if (MISTAKES.some((m) => notice.startsWith(m))) {
+        flash('coral');
+        kick(0.35);
+        hype.combo = { count: 0, expires: 0 };
+        if (game === 'paandi') hype.round.sectionResets++;
+        if (notice.startsWith('Tyre bump')) {
+          announce('BUMPED!', 'Jump the rolling tyres', 'coral');
+          burst(at, 'ink', 12, 0.8);
+        }
+      }
+      if (notice.startsWith('Tagged!')) {
+        flash('coral');
+        kick(0.6);
+        announce('TAGGED!', 'Back to your start line', 'coral');
+        hype.combo = { count: 0, expires: 0 };
+      }
+      if (me.section > was.section) {
+        if (hype.round.sectionResets === 0) {
+          hype.round.perfectGrids++;
+          reward('PERFECT GRID!', 30, 'gold');
+          announce('PERFECT GRID!', 'Not a single slip', 'gold');
+        }
+        hype.round.sectionResets = 0;
+      }
+      // Races: live position, with overtakes rewarded (cooldown keeps it from spamming).
+      if ((game === 'pachai-kuthirai' || game === 'paandi') && !me.qualified) {
+        const rank = raceRank(participants, meId);
+        const t = now();
+        if (
+          hype.round.rank &&
+          rank < hype.round.rank &&
+          s.tick - hype.round.startTick > 180 &&
+          t - hype.round.rankAt > 1.5
+        ) {
+          hype.round.overtakes++;
+          hype.round.rankAt = t;
+          reward(`OVERTAKE! P${rank}`, 12, 'cyan');
+        }
+        if (rank !== hype.round.rank) {
+          hype.round.rank = rank;
+          changed();
+        }
+      }
       // Kalla Manna: surviving an active hazard is a reward; show whether you stand on safe ground.
       if (game === 'kalla-manna' && me.alive) {
         if (prev.wavePhase === 'active' && cur.wavePhase === 'recovery') {
@@ -403,8 +483,36 @@ export function detect(s: any, meId: string) {
               ? 'safe'
               : 'unsafe';
         if (next !== hype.safety) {
+          // Reaching safety in the final half-second of the warning is a clutch save.
+          if (
+            hype.safety === 'unsafe' &&
+            next === 'safe' &&
+            cur.wavePhase === 'warning' &&
+            cur.waveLeft < 30
+          ) {
+            reward('CLUTCH!', 25, 'gold');
+            burst(at, 'gold', 16);
+          }
           hype.safety = next;
           changed();
+        }
+      }
+      // Pachai Kuthirai: clearing a rolling tyre in the air.
+      if (game === 'pachai-kuthirai' && !me.qualified) {
+        const t = now();
+        for (const item of s.items.values()) {
+          if (item.kind !== 'tyre') continue;
+          if (
+            Math.abs(item.z - me.z) < 0.6 &&
+            Math.abs(item.x - me.x) < 1 &&
+            me.y > 0.4 &&
+            t - (hype.round.tyreSeen[item.id] ?? 0) > 1.2
+          ) {
+            hype.round.tyreSeen[item.id] = t;
+            hype.round.tyreJumps++;
+            reward('JUMPED IT!', 15, 'mint');
+            sound('whoosh');
+          }
         }
       }
       // Eripandhu / Seven Stones: a live enemy ball that passes close without hitting you.
@@ -433,6 +541,34 @@ export function detect(s: any, meId: string) {
             cur.near.set(item.id, -1);
           }
         }
+      }
+    }
+    // Seven Stones pacing: record heat one's splits, then call out ahead/behind in heat two.
+    if (game === 'seven-stones') {
+      if (cur.heatPhase === 'active' && prev.heatPhase !== 'active') {
+        hype.round.heatStart = s.tick;
+        hype.round.heatSplits = [];
+      }
+      if (cur.stacked > prev.stacked && cur.heatPhase === 'active') {
+        const split = (s.tick - hype.round.heatStart) / 60;
+        // Several stones can land between two rendered frames: record a split for each.
+        while (hype.round.heatSplits.length < cur.stacked) hype.round.heatSplits.push(split);
+        const target = hype.heatTarget?.splits[cur.stacked - 1];
+        if (target !== undefined) {
+          const delta = split - target;
+          feed(
+            `Stone ${cur.stacked}: ${Math.abs(delta).toFixed(1)}s ${delta <= 0 ? 'ahead of' : 'behind'} heat 1`,
+          );
+        }
+      }
+      if (cur.heatPhase === 'swap' && prev.heatPhase === 'active') {
+        hype.heatTarget = { count: cur.stacked, splits: [...hype.round.heatSplits] };
+        announce(
+          'SWAP ROLES!',
+          `To beat: ${cur.stacked}/7${hype.round.heatSplits.length ? ` in ${hype.round.heatSplits.at(-1)!.toFixed(1)}s` : ''}`,
+          'cyan',
+          true,
+        );
       }
     }
     if (cur.stacked > prev.stacked && cur.stacked === 7) {
@@ -468,6 +604,13 @@ function commitRound(s: any, meId: string) {
     sections: hype.round.sections,
     finishSeconds: hype.round.finishSeconds,
     bestCombo: hype.round.bestCombo,
+    perfectGrids: hype.round.perfectGrids,
+    overtakes: hype.round.overtakes,
+    tyreJumps: hype.round.tyreJumps,
+    difficulty: s.difficulty,
+    skillXp: [...s.players.values()].some((p: any) => p.cpu)
+      ? (DIFFICULTY_INFO[s.difficulty as Difficulty]?.xp ?? 1)
+      : 1,
   };
   const { progress: next, summary } = applyRound(progress(), stats, outcome.id, new Date());
   saveProgress(next);

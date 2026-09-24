@@ -127,7 +127,8 @@ const tamil: Record<string, string> = {
   'Checkpoint saved': 'சோதனைப் புள்ளி சேமிக்கப்பட்டது',
   'Clean vault': 'சரியாகத் தாண்டினீர்கள்',
   'Vault blocked. Reset your approach.': 'தாண்டும் பாதையில் தடை. மீண்டும் அணுகுங்கள்.',
-  'Stone dropped! Pick it up and keep building.': 'கல் விழுந்தது! மீண்டும் எடுத்து அடுக்குங்கள்.',
+  'Tagged! Back to the start line.': 'அடிபட்டீர்கள்! தொடக்கக் கோட்டுக்குத் திரும்புங்கள்.',
+  'Tyre bump! Jump the rolling tyres.': 'டயர் மோதியது! உருளும் டயர்களைத் தாண்டுங்கள்.',
   'Stone placed': 'கல் அடுக்கப்பட்டது',
   'Hit! One life left.': 'பந்து பட்டது! ஒரு வாய்ப்பு மீதமுள்ளது.',
   'Knocked out': 'வெளியேற்றப்பட்டீர்கள்',
@@ -151,7 +152,7 @@ const guides: Record<GameId, [string, string]> = {
     'அறிவிக்கப்பட்ட பாதுகாப்பான கட்டத்திற்குச் செல்லுங்கள். ஆபத்து நேரத்தில் ஒளிரும் பாதுகாப்பான கட்டத்தில் இறங்குங்கள். குதித்துக்கொண்டிருப்பதால் நிரந்தரப் பாதுகாப்பு கிடைக்காது. நேரம் முடிந்தால் மீதமுள்ள வீரர்கள் சம இடம் பெறுவார்கள்.',
   ],
   'pachai-kuthirai': [
-    'Pass four ordered checkpoints. Space near a crouching NPC attempts a vault. The safe branch is longer. Unfinished racers rank by validated progress.',
+    'Pass four ordered checkpoints. Space near a crouching NPC attempts a vault. Rolling tyres cross the lane: jump them or get bumped back. The safe branch is longer. Unfinished racers rank by validated progress.',
     'நான்கு சோதனைப் புள்ளிகளையும் வரிசையாகக் கடக்கவும். குனிந்த வீரரின் அருகில் SPACE அழுத்தித் தாண்டவும். எளிய பாதை நீளமானது. முடிக்காதவர்களுக்கு அவர்கள் கடந்த சரியான தூரத்தின் அடிப்படையில் இடம் வழங்கப்படும்.',
   ],
   eripandhu: [
@@ -159,7 +160,7 @@ const guides: Record<GameId, [string, string]> = {
     'E அழுத்திப் பந்தை எடுக்கவும். சுட்டியை அழுத்திக் குறிவைத்து, விடுவித்து எறியவும்; அல்லது E அழுத்தி எதிர்நோக்கும் திசையில் எறியவும். ஒரு பந்து ஒருமுறை மட்டுமே தாக்கும். அடிபட்டதும் சிறிது நேரம் பாதுகாப்பு கிடைக்கும். நேர முடிவில் மீதமுள்ள வாய்ப்புகள், பின்னர் வெற்றிகரமான அடிகள் கணக்கிடப்படும்.',
   ],
   'seven-stones': [
-    'Builders deliver seven stones to the circle and press E to place. Defenders throw balls to interrupt them. Swap after 90 seconds; compare stone counts, then progress time.',
+    'Builders deliver seven stones to the circle and press E to place; higher stones take longer to balance. Defenders throw balls: a tagged builder drops the stone, which bounces away, and walks back from the start line. Swap after 90 seconds; compare stone counts, then progress time.',
     'அடுக்கும் அணி ஏழு கற்களையும் வட்டத்திற்குக் கொண்டு வந்து E அழுத்தி அடுக்க வேண்டும். தடுக்கும் அணி பந்தால் அவர்களைத் தடுக்க வேண்டும். 90 வினாடிகளுக்குப் பிறகு பங்குகள் மாறும். அடுக்கிய கற்களின் எண்ணிக்கை, பின்னர் அதற்கான நேரம் ஒப்பிடப்படும்.',
   ],
   paandi: [

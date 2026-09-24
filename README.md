@@ -58,7 +58,7 @@ Development uses browser port **5173** and server port **2567**. The terminal pr
 
 Paandi requires hopping between highlighted groups. Use short movement taps for nearby groups and retain momentum for the marked-cell skip. On return, press E beside the marker before crossing its cell. Previously completed sections remain saved after a mistake.
 
-Settings include draft Tamil UI/objectives, master/music/effects volume, three graphics presets, reduced motion, and optional screen shake. Wardrobe presets change appearance only. Touch controls provide an independent movement stick, Jump, and an Action/aim control on coarse-pointer devices. **Physical Android and iPhone testing is still pending**; responsive emulation is not device acceptance.
+The host chooses CPU skill in Rounds: Relaxed, Street or Legend. Harder CPUs pay more street XP, and every CPU gets a different seeded personality each round. Settings include draft Tamil UI/objectives, master/music/effects volume, three graphics presets, reduced motion, and optional screen shake. Wardrobe presets change appearance only. Touch controls provide an independent movement stick, Jump, and an Action/aim control on coarse-pointer devices. **Physical Android and iPhone testing is still pending**; responsive emulation is not device acceptance.
 
 ## Troubleshooting
 

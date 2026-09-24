@@ -15,7 +15,7 @@ import { session, controls, PredictionRuntime, physicsReady } from './network';
 import { InstancePool, Piece } from './Instances';
 import { preferences, usePreferences } from './preferences';
 import { sound } from './audio';
-import { hype } from './hype';
+import { hype, burst } from './hype';
 import { HypeDirector, Particles, Footwork, Sky } from './Effects';
 export const avatarColors = [
   COLORS.yellow,
@@ -393,12 +393,22 @@ function Croucher({ box: b }: any) {
   );
 }
 function ItemView({ id }: { id: string }) {
-  const group = useRef<THREE.Group>(null);
-  useFrame(() => {
+  const group = useRef<THREE.Group>(null),
+    trail = useRef(0);
+  useFrame((_, dt) => {
     const item = session.room?.state.items.get(id);
     if (!item || !group.current) return;
     const root = group.current;
     root.position.set(item.x, item.y, item.z);
+    if (item.kind === 'tyre') {
+      root.rotation.z -= (item.vx * Math.min(dt, 0.05)) / 0.45;
+      return;
+    }
+    // Live balls leave a short spark trail so throws read at a glance.
+    if (item.status === 'LIVE' && !preferences.reducedMotion && (trail.current += dt) > 0.03) {
+      trail.current = 0;
+      burst({ x: item.x, y: item.y, z: item.z }, COLORS.yellow, 1, 0.15);
+    }
     if (item.status === 'CARRIED') {
       const p = session.room?.state.players.get(item.owner);
       if (p) {
@@ -415,7 +425,18 @@ function ItemView({ id }: { id: string }) {
   const item = session.room?.state.items.get(id);
   return (
     <group ref={group}>
-      {item?.kind === 'stone' ? (
+      {item?.kind === 'tyre' ? (
+        <>
+          <Piece kind="torus" args={[0.34, 0.12, 8, 18]} color="#26222B" />
+          <Piece
+            kind="cylinder"
+            args={[0.23, 0.23, 0.08, 10]}
+            rotation={[Math.PI / 2, 0, 0]}
+            color={COLORS.coral}
+          />
+          <Box position={[0, 0.18, 0]} size={[0.06, 0.2, 0.09]} color={COLORS.cream} />
+        </>
+      ) : item?.kind === 'stone' ? (
         <Piece kind="cylinder" args={[0.3, 0.34, 0.15, 7]} color={COLORS.stone} />
       ) : (
         <>
@@ -428,6 +449,50 @@ function ItemView({ id }: { id: string }) {
           />
         </>
       )}
+    </group>
+  );
+}
+// Pulsing ring under the local player while an enemy ball is on its way: a readable "dodge now".
+function Threat() {
+  const ring = useRef<THREE.Object3D>(null);
+  useFrame(({ clock }) => {
+    const room = session.room,
+      me = room?.state.players.get(room.sessionId);
+    if (!ring.current) return;
+    let danger = false;
+    if (room && me?.alive && room.state.phase === 'PLAYING') {
+      const v = runtime?.position(me) ?? me;
+      for (const b of room.state.items.values()) {
+        if (b.status !== 'LIVE' || b.owner === room.sessionId) continue;
+        const owner = room.state.players.get(b.owner);
+        if (room.state.selectedGame === 'seven-stones' && owner?.team === me.team) continue;
+        const dx = v.x - b.x,
+          dz = v.z - b.z,
+          d = Math.hypot(dx, dz);
+        if (d < 4.5 && d > 0.01 && (b.vx * dx + b.vz * dz) / d > 5) danger = true;
+      }
+      ring.current.position.set(v.x, 0.05, v.z);
+    }
+    ring.current.visible = danger;
+    ring.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 30) * 0.12);
+  });
+  return (
+    <group ref={ring as any}>
+      <Piece
+        kind="ring"
+        args={[0.62, 0.8, 28]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        color={COLORS.coral}
+        basic
+      />
+      <Label
+        text="DODGE!"
+        position={[0, 2.35, 0]}
+        width={1.2}
+        height={0.34}
+        background={COLORS.coral}
+        color={COLORS.cream}
+      />
     </group>
   );
 }
@@ -705,11 +770,18 @@ function PaandiGrid() {
               {[3, 5, 7].includes(gate) && (
                 <Box position={[0, 0.024, 0]} size={[0.06, 0.02, g.d]} color={COLORS.cream} />
               )}
+              {next && (
+                <Box
+                  position={[0, 0.02, 0]}
+                  size={[g.w - 0.3, 0.012, g.d - 0.3]}
+                  color={COLORS.cyan}
+                />
+              )}
               <Label
-                text={marked ? '×' : gate === 0 ? 'START' : String(gate)}
-                position={[0, 0.14, 0]}
-                width={gate === 0 ? 0.9 : 0.35}
-                height={0.2}
+                text={marked ? '× SKIP' : gate === 0 ? 'START' : String(gate)}
+                position={[0, 0.3, 0]}
+                width={1.5}
+                height={0.33}
                 color={marked ? COLORS.coral : COLORS.ink}
               />
               {marked && (
@@ -737,6 +809,26 @@ function PaandiGrid() {
       <Box position={[5.6, 1.5, -48]} size={[0.2, 3, 0.2]} color={COLORS.cyan} />
       <Box position={[4, 3, -48]} size={[3.4, 0.3, 0.3]} color={COLORS.yellow} />
     </>
+  );
+}
+// Bouncing arrow over the local player's next Paandi group: where to land is never a guess.
+function NextHop() {
+  const arrow = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    const room = session.room,
+      p = room?.state.players.get(room.sessionId);
+    if (!arrow.current) return;
+    const show = !!p && room!.state.phase === 'PLAYING' && p.section < 3 && !p.qualified;
+    arrow.current.visible = show;
+    if (!show) return;
+    const g = paandiGroup(p!.section, p!.gate);
+    const bob = preferences.reducedMotion ? 0 : Math.abs(Math.sin(clock.elapsedTime * 5)) * 0.3;
+    arrow.current.position.set(0, 1.1 + bob, g.z);
+  });
+  return (
+    <group ref={arrow}>
+      <Piece kind="cone" args={[0.28, 0.5, 4]} rotation={[Math.PI, 0, 0]} color={COLORS.cyan} />
+    </group>
   );
 }
 function Podium() {
@@ -905,10 +997,16 @@ function World({ cosmetic }: { cosmetic: number }) {
       ) : (
         <Scenery />
       )}
-      {active && state.selectedGame === 'paandi' && <PaandiGrid />}
+      {active && state.selectedGame === 'paandi' && (
+        <>
+          <PaandiGrid />
+          <NextHop />
+        </>
+      )}
       {room && (
         <>
           <Aim />
+          <Threat />
           {Array.from(state!.items.keys()).map((id) => (
             <ItemView key={id} id={id} />
           ))}

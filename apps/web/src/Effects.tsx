@@ -16,7 +16,13 @@ export function HypeDirector() {
       return;
     }
     connected.current = true;
-    detect(room.state, room.sessionId);
+    // Feedback is cosmetic: a detector bug must never stop the render loop or the match.
+    try {
+      detect(room.state, room.sessionId);
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('hype detector', error);
+      resetHype();
+    }
   }, -4);
   return null;
 }

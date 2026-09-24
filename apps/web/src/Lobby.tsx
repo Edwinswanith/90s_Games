@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { GAMES, GAME_IDS, FESTIVAL_ORDER, type GameId } from '../../../packages/shared/src/config';
+import {
+  GAMES,
+  GAME_IDS,
+  FESTIVAL_ORDER,
+  DIFFICULTIES,
+  DIFFICULTY_INFO,
+  type Difficulty,
+  type GameId,
+} from '../../../packages/shared/src/config';
 import { rosterError } from '../../../packages/shared/src/validation';
 import { session, leave } from './network';
 import { avatarColors } from './Scene';
@@ -253,6 +261,22 @@ export function Lobby() {
               />{' '}
               Fill empty places with CPUs
             </label>
+            <label className={styles.label}>
+              CPU SKILL
+              <select
+                aria-label="CPU skill"
+                value={s.difficulty}
+                disabled={!host}
+                onChange={(e) => change({ difficulty: e.target.value })}
+              >
+                {DIFFICULTIES.map((d) => (
+                  <option key={d} value={d}>
+                    {DIFFICULTY_INFO[d].label} · XP x{DIFFICULTY_INFO[d].xp}
+                  </option>
+                ))}
+              </select>
+              <small>{DIFFICULTY_INFO[s.difficulty as Difficulty]?.detail}</small>
+            </label>
           </div>
         ) : (
           <div className={styles.roomFields}>
@@ -267,7 +291,9 @@ export function Lobby() {
             </p>
             <small>
               {s.format.toUpperCase()} · {s.slots} participants ·{' '}
-              {s.botFill ? 'CPU fill on' : 'Humans only'}
+              {s.botFill
+                ? `CPU fill on · ${DIFFICULTY_INFO[s.difficulty as Difficulty]?.label ?? 'Street'} skill`
+                : 'Humans only'}
             </small>
           </div>
         )}

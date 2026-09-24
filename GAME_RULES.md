@@ -20,7 +20,7 @@ Standing or landing on an unsafe support during the active phase eliminates the 
 
 ## Pachai Kuthirai
 
-A roughly 100-unit street contains four ordered checkpoints and crouching NPC obstacles. Move and jump normally, or press Jump while approaching an eligible obstacle to attempt a collision-checked vault. A successful vault gives a temporary capped 10% speed bonus; bonuses do not accumulate.
+A roughly 100-unit street contains four ordered checkpoints and crouching NPC obstacles. Move and jump normally, or press Jump while approaching an eligible obstacle to attempt a collision-checked vault. A successful vault gives a temporary capped 10% speed bonus; bonuses do not accumulate. Three rolling tyres swing across the lane between vault rows; touching one on the ground stuns briefly, knocks you sideways and cancels the bonus. Jumping clears them.
 
 The fork offers a longer safe route and a shorter difficult route. Falling returns to the last checkpoint. The server records ordered finish crossings once. The cap is 90 s; after the first finisher, remaining time is reduced to at most 25 s. Unfinished racers rank below finishers by validated route progress. Exact metrics remain tied.
 
@@ -36,7 +36,7 @@ Resolve simultaneous hits together. After 90 s, a tied-survivor round gets at mo
 
 Equal teams attack once each under mirrored scatter/spawn conditions. Festival uses 4v4. The scripted opening lasts one second; each attacking heat allows 90 s. Swap roles during a four-second briefing. Defenders receive one ball for 2v2/3v3 and two for 4v4.
 
-Builders pick up one of seven uniquely identified stones. Carrying speed is 4.6 units/s. In the central circle, Action starts a 0.45 s placement. Leaving range, a hit, disconnect, or heat completion cancels placement. Hits cause a safe drop, brief stun and protection; they do not eliminate builders. Completed stack stones remain protected.
+Builders pick up one of seven uniquely identified stones. Carrying speed is 4.6 units/s. In the central circle, Action starts a placement of 0.45 s plus about 0.08 s per stone already stacked. Leaving range, a hit, disconnect, or heat completion cancels placement. A hit tags the builder: the stone drops and bounces 2.5 units away from the stack, the builder returns to their team's start line with a brief stun and protection. Builders are never eliminated. Completed stack stones remain protected.
 
 After both heats, more stacked stones wins. Equal positive counts compare the earlier time of final progress/completion. Equal zero progress is a draw. The team result awards once, after both heats.
 
@@ -50,6 +50,6 @@ Use short steering taps for adjacent groups and a running approach for a longer 
 
 ## Recovery and fair play
 
-CPUs use ordinary movement/action intentions, with reaction delays and bounded aiming/hopping error. They do not submit authoritative state. Cosmetics never change movement, lives, capsule dimensions or throw strength. Characters do not physically block each other.
+CPUs use ordinary movement/action intentions, with reaction delays and bounded aiming/hopping error. The host picks CPU skill (Relaxed, Street, Legend); each CPU also gets a seeded per-round personality (speed, reaction, aim, mistake rate), so results vary between rounds. Skill never affects humans. They do not submit authoritative state. Cosmetics never change movement, lives, capsule dimensions or throw strength. Characters do not physically block each other.
 
 A disconnected character remains vulnerable; input neutralizes and carried items drop. The 15-second reservation preserves the slot. CPU takeover does not revive an eliminated player. Final results wait for the host to return everyone to the lobby and create fresh match state.
